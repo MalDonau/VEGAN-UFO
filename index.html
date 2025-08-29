@@ -114,7 +114,7 @@
 
   <script>
   // ==== Constantes de mundo
-  const VIEW_W = 920, SECTION_W = 920, WORLD_W = 2760, MAX_CAM = WORLD_W - VIEW_W;
+  const VIEW_W = 920, VIEW_H = Math.round(920 * 9 / 16), SECTION_W = 920, WORLD_W = 2760, MAX_CAM = WORLD_W - VIEW_W; let UISCALE = 1;
   const SECTION_PRADO_START = 1840;
   const ROUND_TIME = 40; // s
 
@@ -138,7 +138,7 @@
 
   // ==== Utilidades
   const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-  function horizonY(){ return frame.getBoundingClientRect().height * 0.8; }
+  function horizonY(){ return VIEW_H * 0.8; }
   function linearThenSmoothDecel(t, split=0.82){
     if (t <= split) return t;
     const u = (t - split) / (1 - split);
@@ -180,7 +180,7 @@
   function thereminFadeIn(dur=2.0){ if(!theremin||!audioCtx) return; const now=audioCtx.currentTime; try{ theremin.gain.gain.cancelScheduledValues(now); theremin.gain.gain.setValueAtTime(0.0001, now); theremin.gain.gain.linearRampToValueAtTime(0.14, now + dur); }catch(_){}}
   function updateTheremin(dt){
     if(!theremin||!audioCtx) return;
-    const r = frame.getBoundingClientRect();
+    /* const r = frame.getBoundingClientRect(); */
     const yNorm = clamp(currentY / r.height, 0, 1); // 0 abajo (grave) → 1 arriba (agudo)
 
     // Mantener grave igual y sumar +1 octava en el agudo
@@ -223,14 +223,14 @@
   }
   function positionTruck(){
     if (!truckEl) return;
-    const h = truckEl.getBoundingClientRect().height || 56; // altura del camión
+    const h = truckEl.offsetHeight || 56; // altura del camión
     const y = horizonY() - h; // altura dinámica
     truckEl.style.top = y + 'px';
     truckEl.style.left = '6px'; // borde izquierdo de la granja
   }
 
   // ==== Interacción
-  function setTargetFromPointer(clientX, clientY){ const r=frame.getBoundingClientRect(); const lx=clamp(clientX - r.left,0,r.width); const ly=clamp(clientY - r.top,0,r.height); pointerLocalX=lx; pointerLocalY=ly; targetX=camX+lx; targetY=ly; idle=false; }
+  function setTargetFromPointer(clientX, clientY){ const r=frame.getBoundingClientRect(); const s = UISCALE || 1; const lx=clamp((clientX - r.left)/s,0,VIEW_W); const ly=clamp((clientY - r.top)/s,0,VIEW_H); pointerLocalX=lx; pointerLocalY=ly; targetX=camX+lx; targetY=ly; idle=false; }
   function setActiveAtPoint(clientX, clientY){ const r=frame.getBoundingClientRect(); const wx=camX + (clientX - r.left), y=clientY - r.top; let found=false; herdState.forEach((s,i)=>{ const inside = wx>=s.x && wx<=s.x+s.w && y>=s.y && y<=s.y+s.h; if(inside && !found){ herdState[i].active=true; found=true; } else { herdState[i].active=false; } }); }
   function releaseCapture(){ if(capturedIndex!==-1){ const s=herdState[capturedIndex]; s.captured=false; s.dropping=true; capturedIndex=-1; } stopAbductTone(); }
 
@@ -367,6 +367,16 @@
   }
   if (btnPause) btnPause.addEventListener('click', ()=> togglePause());
 
+  // ==== Adaptación a viewport (escala)
+  function computeScale(){
+    const vw = window.innerWidth || document.documentElement.clientWidth;
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const s = Math.min(vw / VIEW_W, vh / VIEW_H);
+    UISCALE = s;
+    frame.style.transformOrigin = 'center center';
+    frame.style.transform = `scale(${s})`;
+  }
+
   // ==== Animación
   function animate(ts){ try{
     if(ts==null) ts=performance.now(); if(lastTs==null) lastTs=ts; const dt=Math.max(0,(ts-lastTs)/1000); lastTs=ts;
@@ -421,9 +431,9 @@
     const vxUfo = currentX - prevUfoX; let desiredBeam = clamp(vxUfo * 0.7, -16, 16); if(!beamOn) desiredBeam=0; beamAngleDeg += (desiredBeam - beamAngleDeg) * 0.28; let desiredUfo = clamp(vxUfo * 0.5, -12, 12); ufoAngleDeg += (desiredUfo - ufoAngleDeg) * 0.25; ufo.style.transform='rotate('+ufoAngleDeg+'deg)'; prevUfoX=currentX;
 
     // Haz
-    if(beamOn){ const beamWidth=100; const coneTopX=currentX - beamWidth/2; const coneTopY=baseY + 60; const height=r.height/2; beam.style.left=coneTopX+'px'; beam.style.top=coneTopY+'px'; beam.style.height=height+'px'; beam.style.display='block'; } else { beam.style.display='none'; }
+    if(beamOn){ const beamWidth=100; const coneTopX=currentX - beamWidth/2; const coneTopY=baseY + 60; const height=VIEW_H/2; beam.style.left=coneTopX+'px'; beam.style.top=coneTopY+'px'; beam.style.height=height+'px'; beam.style.display='block'; } else { beam.style.display='none'; }
     beam.style.transform='rotate('+beamAngleDeg+'deg)';
-    const beamRect = beamOn ? {left:currentX-50,right:currentX+50,top:baseY+60,bottom:baseY+60+(r.height/2)} : null;
+    const beamRect = beamOn ? {left:currentX-50,right:currentX+50,top:baseY+60,bottom:baseY+60+(VIEW_H/2)} : null;
 
     // Captura exclusiva
     if(beamOn && capturedIndex===-1 && beamRect){ let candidate=-1, bestDx=Infinity; boxes.forEach((el,i)=>{ const s=herdState[i]; const overlaps=(s.x+s.w)>beamRect.left && s.x<beamRect.right && (s.y+s.h)>beamRect.top && s.y<beamRect.bottom; if(overlaps){ const dx=Math.abs((s.x+s.w/2)-currentX); if(dx<bestDx){bestDx=dx; candidate=i;} } }); if(candidate!==-1){ capturedIndex=candidate; const s=herdState[capturedIndex]; s.captured=true; s.dropping=false; startAbductTone(); playMoo('grab'); } }
@@ -431,7 +441,7 @@
     if(!(beamOn && capturedIndex!==-1)) stopAbductTone();
 
     // Física
-    const g=Math.max(.22, r.height*0.0012), air=.96, clearance=24;
+    const g=Math.max(.22, VIEW_H*0.0012), air=.96, clearance=24;
     boxes.forEach((el,i)=>{
       const s=herdState[i]; const px=s.x, py=s.y;
       if(i===capturedIndex && beamOn){ const ty=baseY+60 - s.h - 4 + clearance; const tx=currentX - s.w/2; s.x += (tx - s.x)*0.30; s.y += (ty - s.y)*0.02; s.vx = s.x - px; s.vy = s.y - py; }
@@ -464,10 +474,11 @@
   }catch(e){ console.error(e); requestAnimationFrame(animate); }}
 
   // ==== Inicio
-  populatePinar(); populatePradoLeft(); buildTruck(); positionTruck();
+  computeScale(); populatePinar(); populatePradoLeft(); buildTruck(); positionTruck();
   world.style.transform = `translate3d(${-MAX_CAM}px,0,0)`; // vista en Prado
   requestAnimationFrame(animate);
-  window.addEventListener('resize', ()=>{ layoutBoxes(); populatePinar(); populatePradoLeft(); positionTruck(); });
+  window.addEventListener('resize', ()=>{ computeScale(); layoutBoxes(); populatePinar(); populatePradoLeft(); positionTruck(); });
+  window.addEventListener('orientationchange', ()=>{ setTimeout(()=>{ computeScale(); layoutBoxes(); populatePinar(); populatePradoLeft(); positionTruck(); }, 60); });
   </script>
 </body>
 </html>
