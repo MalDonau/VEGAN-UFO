@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vegan UFO</title>
+  <style>
+    :root {
+      --c-celeste: #87CEEB;
+      --c-azul-oscuro: #0A2A6B;
+      --beam-color: 255, 255, 210;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;display:grid;place-items:center;background:#000;font-family:system-ui, sans-serif}
+
+    .frame{width:920px;aspect-ratio:16/9;position:relative;overflow:hidden;border-radius:8px;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 10px 30px rgba(0,0,0,.6);background:linear-gradient(to top,var(--c-celeste),var(--c-azul-oscuro));touch-action:none}
+
+    .world{position:absolute;inset:0;height:100%;width:2760px;will-change:transform;pointer-events:none}
+    .section{position:absolute;top:0;bottom:0;width:920px;pointer-events:none}
+    .granja{left:0}
+    .pinar{left:920px}
+    .prado{left:1840px}
+
+    /* Transición marrón→verde en el PINAR (de izquierda a derecha) */
+    .pinar::before{content:"";position:absolute;left:0;right:0;top:80%;bottom:0;pointer-events:none;z-index:1;
+      /* Capa 1: verde que aumenta hacia la derecha */
+      background:
+        linear-gradient(to right, rgba(42,143,58,0) 0%, rgba(42,143,58,.5) 65%, rgba(42,143,58,.85) 100%),
+        /* Capa 2: leve sombreado vertical para emparentar con el prado */
+        linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,.12) 100%);
+    }
+
+    /* Suelo verde en el prado */
+    .prado::before{content:"";position:absolute;left:0;right:0;top:80%;bottom:0;background:linear-gradient(to bottom,#2a8f3a 0%, #206e2e 100%);z-index:1;pointer-events:none}
+
+
+    .ground{position:absolute;left:0;right:0;top:80%;bottom:0;background:linear-gradient(to bottom,#5a3b1f,#2c1a0f);z-index:0}
+    .tree{position:absolute;width:0;height:0;pointer-events:none;z-index:2;border-left-style:solid;border-right-style:solid;border-bottom-style:solid;border-left-color:transparent;border-right-color:transparent;border-bottom-color:#1e5f39}
+    .tree.shadow::after{content:"";position:absolute;left:-50%;right:-50%;bottom:-2px;height:4px;background:radial-gradient(closest-side,rgba(0,0,0,.35),rgba(0,0,0,0));filter:blur(1px)}
+
+    .ufo{position:absolute;width:120px;height:60px;background:silver;border-radius:50%/50%;box-shadow:0 0 20px rgba(255,255,255,.5);pointer-events:none;z-index:5;transform-origin:50% 60%}
+    .beam{position:absolute;width:100px;height:0;left:0;top:0;display:none;pointer-events:none;clip-path:polygon(35% 0%,65% 0%,100% 100%,0% 100%);background:linear-gradient(to bottom,rgba(var(--beam-color),.3) 0%, rgba(var(--beam-color),.6) 50%, rgba(var(--beam-color),0) 100%);filter:blur(.5px);transform-origin:50% 0%;z-index:4}
+    .box{position:absolute;width:30px;height:20px;background:#fff;z-index:3}
+
+    /* Vaquitas (estilo simple) */
+    .cow{background:#fff;border:1px solid rgba(0,0,0,.15);border-radius:5px 7px 5px 5px / 6px 8px 6px 6px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12);
+      background-image:
+        radial-gradient(6px 5px at 65% 45%, #000 60%, transparent 61%),
+        radial-gradient(5px 4px at 40% 75%, #000 60%, transparent 61%);
+      background-repeat:no-repeat;}
+    .cow .head{position:absolute;right:-10px;top:2px;width:14px;height:10px;background:#fff;border:1px solid rgba(0,0,0,.15);border-radius:2px;} 
+    .cow .head::before{content:"";position:absolute;left:3px;top:3px;width:2px;height:2px;background:#000;border-radius:1px;box-shadow:5px 0 0 #000;}
+    .cow .ear{position:absolute;top:-3px;width:4px;height:4px;background:#fff;border:1px solid rgba(0,0,0,.15);border-bottom:none;border-radius:2px 2px 0 0}
+    .cow .ear.left{left:1px}
+    .cow .ear.right{right:1px}
+    .cow .leg{position:absolute;bottom:-2px;width:3px;height:6px;background:#111;border-radius:0 0 2px 2px}
+    .cow .leg.left{left:6px}
+    .cow .leg.right{left:18px}
+    .cow .tail{position:absolute;left:-5px;top:5px;width:6px;height:2px;background:#111;border-radius:2px;transform-origin:100% 50%;animation:tail 1.2s ease-in-out infinite;opacity:.9}
+    @keyframes tail{0%{transform:rotate(12deg)}50%{transform:rotate(-8deg)}100%{transform:rotate(12deg)}}
+
+    .hud{position:absolute;top:10px;right:10px;display:flex;gap:8px;background:rgba(0,0,0,.35);color:#fff;padding:6px 10px;border-radius:6px;font-weight:600;z-index:11}
+    .hud span{min-width:58px;text-align:center}
+    .hud .pauseBtn{border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);color:#fff;border-radius:6px;padding:4px 8px;cursor:pointer;font-weight:700;line-height:1;min-width:auto}
+    .hud .pauseBtn[aria-pressed="true"]{background:rgba(255,255,255,.15);}
+
+    .intro{position:absolute;inset:0;display:none;align-items:center;justify-content:center;z-index:20;background:rgba(0,0,0,.45)}
+    .intro .panel{max-width:72%;color:#fff;text-align:center;background:rgba(0,0,0,.35);padding:16px 20px;border-radius:12px;border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 30px rgba(0,0,0,.45)}
+    .intro .panel p{margin:0 0 6px;font-weight:600;font-size:18px}
+    .intro .panel .hint{opacity:.85;font-size:12px}
+    .intro .panel .sub{opacity:.9;font-size:12px;margin-top:2px;margin-bottom:6px}
+
+    /* Animación de carteles */
+    @keyframes popIn{0%{transform:scale(.92);opacity:0}60%{transform:scale(1.02);opacity:1}100%{transform:scale(1);opacity:1}}
+    .pop{animation:popIn 240ms cubic-bezier(.22,1,.36,1) forwards}
+    .intro .panel, .intro .panel .sub, .intro .panel .hint{transform:scale(.96);opacity:0;will-change:transform,opacity}
+    .intro .panel .sub.pop{animation-delay:80ms}
+    .intro .panel .hint.pop{animation-delay:130ms}
+
+    /* Camión transportador (simple) */
+    .truck{position:absolute;width:170px;height:72px;z-index:2;pointer-events:none}
+    .truck .body{position:absolute;left:36px;bottom:22px;width:120px;height:38px;background:#4a6fa1;border:1px solid rgba(0,0,0,.35);border-radius:4px;box-shadow:inset 0 -2px 0 rgba(0,0,0,.2)}
+    .truck .cab{position:absolute;left:0;bottom:22px;width:44px;height:30px;background:#6f90c0;border:1px solid rgba(0,0,0,.35);border-radius:3px 3px 2px 2px}
+    .truck .cab::after{content:"";position:absolute;left:6px;top:4px;width:24px;height:12px;background:linear-gradient(to bottom,#d8ecff,#9dc0e8);border-radius:2px}
+    .truck .wheel{position:absolute;bottom:0;width:16px;height:16px;background:#111;border-radius:50%;box-shadow:inset 0 0 0 3px #333}
+    .truck .wheel.w1{left:44px}
+    .truck .wheel.w2{left:112px}
+    .truck .ramp{position:absolute;left:150px;bottom:24px;width:80px;height:10px;background:linear-gradient(to right,#7aa35a,#5e8b46);border:1px solid rgba(0,0,0,.25);border-left:none;border-radius:0 2px 2px 0;transform-origin:left center;transform:rotate(16deg)}
+    .truck .grill{position:absolute;left:2px;bottom:14px;width:4px;height:24px;background:rgba(0,0,0,.25);border-radius:2px}
+
+    .unmute{position:absolute;top:10px;left:10px;z-index:21;background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.25);padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:600;display:none}
+    /* Título inicial */
+    .titleOverlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:25;color:#fff;font-size:48px;font-weight:800;letter-spacing:.5px;text-shadow:0 2px 10px rgba(0,0,0,.6);background:radial-gradient(ellipse at center, rgba(0,0,0,.35), rgba(0,0,0,0) 60%)}
+</style>
+</head>
+<body>
+  <main class="frame" id="frame">
+    <div class="world" id="world">
+      <div class="section granja" id="granja"></div>
+      <div class="section pinar" id="pinar"></div>
+      <div class="section prado" id="prado"></div>
+      <div class="ground"></div>
+      <div class="beam" id="beam"></div>
+      <div class="ufo" id="ufo"></div>
+      <div id="herd"></div>
+    </div>
+
+    <div class="hud"><span id="hudTimer">40.0</span><span id="hudGoal">0/4</span><span id="hudLevel">Lv 1</span><button id="btnPause" class="pauseBtn" aria-pressed="false" title="Pausa (P)">⏸</button></div>
+    <div id="intro" class="intro"><div class="panel"><p id="introMain"></p><p id="introSub" class="sub"></p><div class="hint">Clic para comenzar</div></div></div>
+    <button id="unmute" class="unmute" aria-label="Activar sonido">🔊 Activar sonido</button>
+      <div id="titleOverlay" class="titleOverlay">Vegan UFO</div>
+  </main>
+
+  <script>
+  // ==== Constantes de mundo
+  const VIEW_W = 920, SECTION_W = 920, WORLD_W = 2760, MAX_CAM = WORLD_W - VIEW_W;
+  const SECTION_PRADO_START = 1840;
+  const ROUND_TIME = 40; // s
+
+  // ==== DOM
+  const frame = document.getElementById('frame');
+  const world = document.getElementById('world');
+  const ufo = document.getElementById('ufo');
+  const beam = document.getElementById('beam');
+  const herdEl = document.getElementById('herd');
+  const elTimer = document.getElementById('hudTimer');
+  const elGoal = document.getElementById('hudGoal');
+  const elLevel = document.getElementById('hudLevel');
+  const pinarEl = document.getElementById('pinar');
+  const pradoEl = document.getElementById('prado');
+  const elIntro = document.getElementById('intro');
+  const introMain = document.getElementById('introMain');
+  const introSub = document.getElementById('introSub');
+  const unmuteBtn = document.getElementById('unmute');
+  const btnPause = document.getElementById('btnPause');
+  const titleEl = document.getElementById('titleOverlay');
+
+  // ==== Utilidades
+  const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+  function horizonY(){ return frame.getBoundingClientRect().height * 0.8; }
+  function linearThenSmoothDecel(t, split=0.82){
+    if (t <= split) return t;
+    const u = (t - split) / (1 - split);
+    const f = -u*u*u + u*u + u; // Hermite: f(0)=0, f'(0)=1, f(1)=1, f'(1)=0
+    return split + (1 - split) * f;
+  }
+
+  // ==== Estado
+  let mode = 'title'; // 'title' | 'cinematic' | 'game'
+  const CINE_DUR = 4.0; let cineStart = null;
+  const TITLE_DUR = 2.0; let titleStart = null;
+  let phase = 'ready'; // 'ready' | 'running' | 'won' | 'lost'
+  let herdCount = 4, deliveredCount = 0, round = 1;
+  let timeLeft = ROUND_TIME, lastTs = null;
+  let camX = MAX_CAM, camV = 0; // arrancamos mirando el PRADO
+  let targetX = VIEW_W/2, targetY = 200;
+  let currentX = MAX_CAM + VIEW_W + 140, currentY = 200; // OVNI fuera a la derecha
+  let pointerLocalX = VIEW_W/2, pointerLocalY = 200;
+  let idle=false, idleAngle=0; let beamOn=false; let isPointerDown=false;
+  let capturedIndex = -1; let prevUfoX = currentX; let beamAngleDeg=0, ufoAngleDeg=0;
+  let paused = false; let truckEl = null;
+
+  // ==== Audio
+  let audioCtx=null, masterGain=null, reverbNode=null, tone=null, theremin=null, thereminFaded=false;
+  function makeReverbImpulse(ctx, seconds=2.0, decay=2.4){ const rate=ctx.sampleRate; const len=Math.max(1,Math.floor(seconds*rate)); const buf=ctx.createBuffer(2,len,rate); for(let ch=0; ch<2; ch++){ const d=buf.getChannelData(ch); for(let i=0;i<len;i++){ const t=i/len; d[i]=(Math.random()*2-1)*Math.pow(1-t,decay); } } return buf; }
+  function ensureAudio(){
+    if(!audioCtx){ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); masterGain=audioCtx.createGain(); masterGain.gain.value=.35; masterGain.connect(audioCtx.destination); reverbNode=audioCtx.createConvolver(); reverbNode.buffer=makeReverbImpulse(audioCtx,1.4,2.0); }
+    if(audioCtx.state==='suspended'){ try{audioCtx.resume();}catch(_){} }
+    return !!audioCtx && audioCtx.state==='running';
+  }
+  // tono del haz
+  function startAbductTone(){ ensureAudio(); if(!audioCtx) return; if(tone) stopAbductTone(true); const now=audioCtx.currentTime; const F3=174.61,F2=87.31; const env=audioCtx.createGain(); env.gain.setValueAtTime(0.0001,now); env.gain.linearRampToValueAtTime(.8, now+.06); const filt=audioCtx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=1800; const o1=audioCtx.createOscillator(), o2=audioCtx.createOscillator(); o1.type='sawtooth'; o2.type='triangle'; o1.frequency.value=F3; o2.frequency.value=F2; const lfo=audioCtx.createOscillator(), lg=audioCtx.createGain(); lfo.type='sine'; lfo.frequency.value=5; lg.gain.value=8; lfo.connect(lg); lg.connect(o1.detune); lg.connect(o2.detune); const dry=audioCtx.createGain(), wet=audioCtx.createGain(); dry.gain.value=.55; wet.gain.value=.45; o1.connect(filt); o2.connect(filt); filt.connect(env); env.connect(dry); dry.connect(masterGain); env.connect(reverbNode); reverbNode.connect(wet); wet.connect(masterGain); o1.start(now); o2.start(now); lfo.start(now); tone={oscillators:[o1,o2], lfo, env}; }
+  function stopAbductTone(fast=false){ if(!tone||!audioCtx) return; const t=tone; tone=null; const now=audioCtx.currentTime; const tail = fast ? 0.05 : 0.35; try{ t.env.gain.cancelScheduledValues(now); t.env.gain.setValueAtTime(Math.max(.0001,t.env.gain.value), now); t.env.gain.exponentialRampToValueAtTime(.0001, now+tail); (t.oscillators||[]).forEach(o=>{try{o.stop(now+tail+.05)}catch(_){}}); if(t.lfo){try{t.lfo.stop(now+tail+.05)}catch(_){}} }catch(_){} try{ (t.oscillators||[]).forEach(o=>{try{o.disconnect()}catch(_){}}); if(t.lfo&&t.lfo.disconnect) t.lfo.disconnect(); if(t.env&&t.env.disconnect) t.env.disconnect(); }catch(_){} }
+  // mugido
+  function playMoo(kind='grab'){ try{ ensureAudio(); if(!audioCtx) return; const ctx=audioCtx, now=ctx.currentTime; const fStart=(kind==='grab')?130:110, fEnd=(kind==='grab')?85:70, dur=(kind==='grab')?0.7:0.5; const o1=ctx.createOscillator(), o2=ctx.createOscillator(); o1.type='sawtooth'; o2.type='triangle'; o1.frequency.setValueAtTime(fStart,now); o1.frequency.exponentialRampToValueAtTime(fEnd, now+dur); o2.frequency.setValueAtTime(fStart/2,now); o2.frequency.exponentialRampToValueAtTime(fEnd/2, now+dur); const bp1=ctx.createBiquadFilter(); bp1.type='bandpass'; bp1.Q.value=1.4; bp1.frequency.value=320; const bp2=ctx.createBiquadFilter(); bp2.type='bandpass'; bp2.Q.value=1.0; bp2.frequency.value=980; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=1600; const mix=ctx.createGain(); mix.gain.value=.7; const env=ctx.createGain(); env.gain.setValueAtTime(.0001,now); env.gain.exponentialRampToValueAtTime(.6, now+.05); env.gain.exponentialRampToValueAtTime(.0001, now+dur); o1.connect(bp1); o1.connect(bp2); o2.connect(bp1); o2.connect(bp2); bp1.connect(mix); bp2.connect(mix); mix.connect(lp); lp.connect(env); env.connect(masterGain); o1.start(now); o2.start(now); o1.stop(now+dur+.05); o2.stop(now+dur+.05); }catch(_){} }
+  // theremin
+  function startTheremin(){ const ok=ensureAudio(); if(!audioCtx||audioCtx.state!=='running') return false; if(theremin) return true; const now=audioCtx.currentTime; const osc=audioCtx.createOscillator(); osc.type='sine'; const vib=audioCtx.createOscillator(); vib.type='sine'; vib.frequency.value=5; const vibGain=audioCtx.createGain(); vibGain.gain.value=12; vib.connect(vibGain); vibGain.connect(osc.detune); const trem=audioCtx.createOscillator(); trem.type='sine'; trem.frequency.value=2; const tremDepth=audioCtx.createGain(); tremDepth.gain.value=.02; const lp=audioCtx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3200; const gain=audioCtx.createGain(); gain.gain.value=0.0001; // start silent for fade-in
+      osc.connect(lp); lp.connect(gain); trem.connect(tremDepth); tremDepth.connect(gain.gain); const dry=audioCtx.createGain(), wet=audioCtx.createGain(); dry.gain.value=0.9; wet.gain.value=0.15; gain.connect(dry); dry.connect(masterGain); gain.connect(reverbNode); reverbNode.connect(wet); wet.connect(masterGain); osc.frequency.value=300; vib.start(now); trem.start(now); osc.start(now); theremin={osc,vib,vibGain,trem,tremDepth,gain,current:300}; return true; }
+  function thereminFadeIn(dur=2.0){ if(!theremin||!audioCtx) return; const now=audioCtx.currentTime; try{ theremin.gain.gain.cancelScheduledValues(now); theremin.gain.gain.setValueAtTime(0.0001, now); theremin.gain.gain.linearRampToValueAtTime(0.14, now + dur); }catch(_){}}
+  function updateTheremin(dt){
+    if(!theremin||!audioCtx) return;
+    const r = frame.getBoundingClientRect();
+    const yNorm = clamp(currentY / r.height, 0, 1); // 0 abajo (grave) → 1 arriba (agudo)
+
+    // Mantener grave igual y sumar +1 octava en el agudo
+    const minF = 240;          // igual que antes abajo
+    const maxF = 1040;         // +1 octava respecto de ~520 Hz
+
+    // Mapeo lineal de altura a frecuencia (podemos pasar a log si querés)
+    const target = maxF - (maxF - minF) * yNorm;
+
+    // Inercia del pitch
+    theremin.current += (target - theremin.current) * 0.05;
+    try { theremin.osc.frequency.setTargetAtTime(theremin.current, audioCtx.currentTime, 0.025); } catch(_){ }
+
+    // Profundidad del vibrato levemente dependiente de la velocidad horizontal
+    const vx = Math.abs(currentX - prevUfoX);
+    const cents = 8 + Math.min(24, vx * 3);
+    try { theremin.vibGain.gain.setTargetAtTime(cents, audioCtx.currentTime, 0.05); } catch(_){ }
+  }
+
+  // ==== Rebaño
+  let boxes=[], herdState=[];
+  function buildHerd(count){ herdEl.innerHTML=''; boxes=[]; herdState=[]; for(let i=0;i<count;i++){ const el=document.createElement('div'); el.className='box cow';
+      // Partes visuales de la vaquita
+      el.innerHTML = '<span class="head"></span><span class="ear left"></span><span class="ear right"></span><span class="leg left"></span><span class="leg right"></span><span class="tail"></span>';
+      herdEl.appendChild(el); boxes.push(el); herdState.push({x:0,y:0,w:30,h:20,vx:0,vy:0,prevX:0,prevY:0,captured:false,dropping:false,active:false}); } layoutBoxes(); }
+  function layoutBoxes(){ const gap=8,w=30,h=20,n=boxes.length; const total = n>0 ? (n*w+(n-1)*gap):0; const startX = (SECTION_W/2)-total/2; const baseTop=horizonY()-h; boxes.forEach((el,i)=>{ const x=startX+i*(w+gap), y=baseTop; const s=herdState[i]; Object.assign(s,{w,h,x,y,vx:0,vy:0,prevX:x,prevY:y,captured:false,dropping:false,active:false}); el.style.left=x+'px'; el.style.top=y+'px'; }); }
+
+  // ==== Decoración
+  function populatePinar(){ pinarEl.innerHTML=''; const cnt=60,h=horizonY(); for(let i=0;i<cnt;i++){ const t=document.createElement('div'); t.className='tree shadow'; const w=18+Math.random()*34, he=w*(1.5+Math.random()*0.7); t.style.borderLeftWidth=(w/2)+'px'; t.style.borderRightWidth=(w/2)+'px'; t.style.borderBottomWidth=he+'px'; t.style.left=(Math.random()*(SECTION_W - w))+'px'; t.style.top=(h - he + 6)+'px'; pinarEl.appendChild(t);} }
+  function populatePradoLeft(){ pradoEl.querySelectorAll('.tree').forEach(n=>n.remove()); const cnt=28,h=horizonY(), maxX=SECTION_W*0.42; for(let i=0;i<cnt;i++){ const t=document.createElement('div'); t.className='tree shadow'; const w=16+Math.random()*30, he=w*(1.6+Math.random()*0.6); t.style.borderLeftWidth=(w/2)+'px'; t.style.borderRightWidth=(w/2)+'px'; t.style.borderBottomWidth=he+'px'; t.style.left=(Math.random()*Math.max(0,maxX-w))+'px'; t.style.top=(h - he + 6)+'px'; pradoEl.appendChild(t);} }
+
+  // ==== Camión (granja, borde izquierdo)
+  function buildTruck(){
+    if (truckEl && truckEl.parentNode) truckEl.parentNode.removeChild(truckEl);
+    truckEl = document.createElement('div');
+    truckEl.className = 'truck';
+    truckEl.innerHTML = '<div class="body"></div><div class="cab"></div><div class="wheel w1"></div><div class="wheel w2"></div><div class="ramp"></div><div class="grill"></div>';
+    world.appendChild(truckEl);
+    positionTruck();
+  }
+  function positionTruck(){
+    if (!truckEl) return;
+    const h = truckEl.getBoundingClientRect().height || 56; // altura del camión
+    const y = horizonY() - h; // altura dinámica
+    truckEl.style.top = y + 'px';
+    truckEl.style.left = '6px'; // borde izquierdo de la granja
+  }
+
+  // ==== Interacción
+  function setTargetFromPointer(clientX, clientY){ const r=frame.getBoundingClientRect(); const lx=clamp(clientX - r.left,0,r.width); const ly=clamp(clientY - r.top,0,r.height); pointerLocalX=lx; pointerLocalY=ly; targetX=camX+lx; targetY=ly; idle=false; }
+  function setActiveAtPoint(clientX, clientY){ const r=frame.getBoundingClientRect(); const wx=camX + (clientX - r.left), y=clientY - r.top; let found=false; herdState.forEach((s,i)=>{ const inside = wx>=s.x && wx<=s.x+s.w && y>=s.y && y<=s.y+s.h; if(inside && !found){ herdState[i].active=true; found=true; } else { herdState[i].active=false; } }); }
+  function releaseCapture(){ if(capturedIndex!==-1){ const s=herdState[capturedIndex]; s.captured=false; s.dropping=true; capturedIndex=-1; } stopAbductTone(); }
+
+  // Arrancar cronómetro desde overlay (sin prender haz)
+  if (elIntro) {
+    elIntro.addEventListener('pointerdown', (e)=>{ if(mode==='game' && phase==='ready'){ phase='running'; hideIntro(); e.stopPropagation(); e.preventDefault(); } }, {capture:true});
+    // Soporte móvil: tocar el cartel también inicia la ronda
+    elIntro.addEventListener('touchstart', (e)=>{ if(mode==='game' && phase==='ready'){ phase='running'; hideIntro(); e.stopPropagation(); e.preventDefault(); } }, {capture:true, passive:false});
+  }
+
+  frame.addEventListener('pointerdown', (e)=>{ if(mode!=='game' || paused) return; if (e.pointerType === 'touch') return; if(phase==='ready'){ phase='running'; hideIntro(); } isPointerDown=true; beamOn=true; setTargetFromPointer(e.clientX,e.clientY); setActiveAtPoint(e.clientX,e.clientY); });
+  frame.addEventListener('pointermove', (e)=>{ if(mode!=='game' || paused) return; setTargetFromPointer(e.clientX,e.clientY); });
+  frame.addEventListener('mousemove', (e)=>{ if(mode!=='game' || paused) return; setTargetFromPointer(e.clientX,e.clientY); });
+
+  // === Controles touch (móvil): 1 dedo mueve, 2 dedos activan haz ===
+  frame.addEventListener('touchstart', (e)=>{
+    if(mode!=='game' || paused) return;
+    if(phase==='ready'){ phase='running'; hideIntro(); }
+    e.preventDefault();
+    const t = e.touches;
+    if (t.length > 0) { const p = t[0]; setTargetFromPointer(p.clientX, p.clientY); }
+    isPointerDown = t.length > 0;
+    const wantBeam = t.length >= 2;
+    if (wantBeam && !beamOn) { beamOn = true; }
+    if (!wantBeam && beamOn) { beamOn = false; releaseCapture(); }
+  }, {passive:false});
+
+  frame.addEventListener('touchmove', (e)=>{
+    if(mode!=='game' || paused) return;
+    e.preventDefault();
+    const t = e.touches;
+    if (t.length > 0) { const p = t[0]; setTargetFromPointer(p.clientX, p.clientY); }
+    const wantBeam = t.length >= 2;
+    if (wantBeam && !beamOn) { beamOn = true; }
+    if (!wantBeam && beamOn) { beamOn = false; releaseCapture(); }
+  }, {passive:false});
+
+  frame.addEventListener('touchend', (e)=>{
+    if(mode!=='game') return;
+    const t = e.touches;
+    isPointerDown = t.length > 0;
+    const wantBeam = t.length >= 2;
+    if (!wantBeam && beamOn) { beamOn = false; releaseCapture(); }
+  });
+
+  frame.addEventListener('touchcancel', (e)=>{
+    const t = e.touches;
+    isPointerDown = t.length > 0;
+    if (beamOn && t.length < 2) { beamOn = false; releaseCapture(); }
+  });
+  function endPress(){ if(isPointerDown){ isPointerDown=false; beamOn=false; releaseCapture(); } }
+  frame.addEventListener('pointerup', endPress); frame.addEventListener('pointercancel', endPress);
+  window.addEventListener('pointerup', endPress); window.addEventListener('mouseup', endPress); window.addEventListener('touchend', endPress);
+
+  // ==== HUD / Intro
+  function composeIntroText(r, c){ if (r <= 1) { return { main: 'Visitantes! Salven las 4 vacas llevandolas al prado.', sub: 'Clic sobre las vacas para abducirlas.' }; } return { main: `Salven ${c} más por favor.`, sub: '' }; }
+  function updateHUD(){ if(elTimer) elTimer.textContent=timeLeft.toFixed(1); if(elGoal) elGoal.textContent=`${deliveredCount}/${herdCount}`; if(elLevel) elLevel.textContent=`Lv ${Math.max(1, herdCount-3)}`; }
+  function showIntro(){ if(!elIntro) return; elIntro.style.display='flex'; const panel=elIntro.querySelector('.panel'), hint=elIntro.querySelector('.hint'); [panel,introSub,hint].forEach(el=>{ if(!el) return; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }); }
+  function hideIntro(){ if(elIntro) elIntro.style.display='none'; }
+  function updateIntroText(){ const t=composeIntroText(round, herdCount); if(introMain) introMain.textContent=t.main; if(introSub){ introSub.textContent=t.sub||''; introSub.style.display=t.sub?'block':'none'; } }
+
+  // ==== Juego
+  function isDelivered(s){ const dropY=horizonY()-s.h; const cx=s.x+s.w/2; return (cx>=SECTION_PRADO_START+20) && !s.captured && !s.dropping && Math.abs(s.y-dropY)<0.5; }
+  function startRound(resetCamera=true){ mode='game'; phase='ready'; paused=false; deliveredCount=0; timeLeft=ROUND_TIME; capturedIndex=-1; beamOn=false; stopAbductTone(); buildHerd(herdCount); if(resetCamera){ camX=0; camV=0; world.style.transform=`translate3d(${-camX}px,0,0)`; } pointerLocalX=VIEW_W/2; pointerLocalY=200; updateHUD(); updateIntroText(); showIntro(); }
+  function winRound(){ if(phase!=='running')return; phase='won'; herdCount+=1; round+=1; startRound(true); }
+  function loseRound(){ if(phase!=='running')return; phase='lost'; herdCount=4; round=1; startRound(true); }
+
+  // ==== Audio UI
+  function showUnmute(){ if(unmuteBtn) unmuteBtn.style.display='block'; }
+  function hideUnmute(){ if(unmuteBtn) unmuteBtn.style.display='none'; }
+  function unlockAudio(){
+    const ok = ensureAudio();
+    const started = startTheremin();
+    if (started || theremin) {
+      if (!thereminFaded) { thereminFadeIn(2.0); thereminFaded = true; }
+      hideUnmute();
+    }
+  }
+  if(unmuteBtn) unmuteBtn.addEventListener('click', unlockAudio);
+  document.addEventListener('keydown', (e)=>{ if(!theremin) unlockAudio(); });
+  // Atajo de teclado para pausar
+  document.addEventListener('keydown', (e)=>{ if(e.key==='p' || e.key==='P'){ togglePause(); } });
+  document.addEventListener('pointerdown', ()=>{ if(!theremin) unlockAudio(); }, {capture:true});
+  document.addEventListener('click', ()=>{ if(!theremin) unlockAudio(); }, {capture:true});
+  document.addEventListener('touchstart', ()=>{ if(!theremin) unlockAudio(); }, {capture:true, passive:true});
+
+  // ==== Autoplay (intentos automáticos, con reintentos suaves)
+  let autoTries = 0;
+  function attemptAutoplay(){
+    const ok = ensureAudio();
+    const started = startTheremin();
+    if (started || theremin) {
+      if (!thereminFaded) { thereminFadeIn(2.0); thereminFaded = true; }
+      hideUnmute();
+      return;
+    }
+    autoTries++;
+    if (autoTries < 12) { setTimeout(attemptAutoplay, 250); } else { showUnmute(); }
+  }
+  document.addEventListener('DOMContentLoaded', attemptAutoplay, { once: true });
+  window.addEventListener('load', attemptAutoplay, { once: true });
+  setTimeout(attemptAutoplay, 800);
+
+  // Control global de audio (pausa/resume)
+  function audioFadeTo(target, dur=0.18){
+    if(!audioCtx||!masterGain) return;
+    const now = audioCtx.currentTime;
+    try{
+      masterGain.gain.cancelScheduledValues(now);
+      masterGain.gain.setValueAtTime(Math.max(0.0001, masterGain.gain.value), now);
+      masterGain.gain.linearRampToValueAtTime(target, now + dur);
+    }catch(_){ }
+  }
+  function setAudioPaused(flag){
+    if(!audioCtx) return;
+    try{
+      if(flag){
+        stopAbductTone(true);
+        audioFadeTo(0.0001, 0.12);
+        if(audioCtx.suspend) audioCtx.suspend();
+      } else {
+        if(audioCtx.resume) audioCtx.resume();
+        audioFadeTo(0.35, 0.18);
+      }
+    }catch(_){ }
+  }
+
+  // Botón de pausa
+  function togglePause(force){
+    paused = (typeof force === 'boolean') ? force : !paused;
+    if (btnPause){ btnPause.setAttribute('aria-pressed', String(paused)); btnPause.textContent = paused ? '▶' : '⏸'; }
+    setAudioPaused(paused);
+    if (paused){ isPointerDown=false; beamOn=false; stopAbductTone(); }
+  }
+  if (btnPause) btnPause.addEventListener('click', ()=> togglePause());
+
+  // ==== Animación
+  function animate(ts){ try{
+    if(ts==null) ts=performance.now(); if(lastTs==null) lastTs=ts; const dt=Math.max(0,(ts-lastTs)/1000); lastTs=ts;
+
+    if (mode==='title') { if (titleStart===null) titleStart = ts; if (titleEl) titleEl.style.display='flex'; const tt = clamp((ts - titleStart)/(TITLE_DUR*1000), 0, 1); if (tt >= 1) { if (titleEl) titleEl.style.display='none'; mode='cinematic'; cineStart=null; } requestAnimationFrame(animate); return; }
+
+    if(mode==='cinematic'){
+      // Arranca SIEMPRE la cinemática; el audio se engancha cuando el usuario habilite
+      if (cineStart === null) { cineStart = ts; }
+      const started = startTheremin();
+      if (theremin && !thereminFaded) { thereminFadeIn(2.0); thereminFaded = true; }
+      if (!theremin) showUnmute(); else hideUnmute();
+      const t = clamp((ts - cineStart)/(CINE_DUR*1000), 0, 1);
+      // OVNI: de fuera-derecha (sobre el prado) a centro granja
+      const ufoStartX = MAX_CAM + VIEW_W + 140; // fuera de cuadro
+      const ufoEndX = VIEW_W * 0.5;             // centro de granja
+      const p = linearThenSmoothDecel(t, 0.82);
+      const cineX = ufoStartX + (ufoEndX - ufoStartX) * p;
+      const cineY = 200 + Math.sin(t * Math.PI * 2) * 18; // bobbing
+      currentX = cineX; currentY = cineY;
+      const baseY = currentY - 30;
+      ufo.style.left = (currentX - 60) + 'px';
+      ufo.style.top  = baseY + 'px';
+      const vxUfo = currentX - prevUfoX; prevUfoX = currentX;
+      let desiredUfo = clamp(vxUfo * 0.5, -10, 10); ufoAngleDeg += (desiredUfo - ufoAngleDeg) * 0.2; ufo.style.transform='rotate('+ufoAngleDeg+'deg)';
+      // Cámara sigue al OVNI
+      const camTarget = clamp(currentX - VIEW_W*0.5, 0, MAX_CAM);
+      camX += (camTarget - camX) * 0.12;
+      world.style.transform = `translate3d(${-camX}px,0,0)`;
+      // Sin haz en cinemática
+      beamOn=false; beam.style.display='none'; stopAbductTone();
+      // Audio UI
+      if(!theremin) showUnmute(); else hideUnmute();
+      updateTheremin(dt);
+      if(t>=1){ startRound(true); }
+      requestAnimationFrame(animate); return;
+    }
+
+    // === Juego ===
+    if (paused) { requestAnimationFrame(animate); return; }
+    if(phase==='running'){ timeLeft-=dt; if(timeLeft<0) timeLeft=0; }
+
+    // OVNI sigue al puntero
+    targetX = camX + pointerLocalX; targetY = pointerLocalY;
+    currentX += (targetX - currentX) * 0.12; currentY += (targetY - currentY) * 0.08;
+    idle = (Math.abs(targetX-currentX)<0.2 && Math.abs(targetY-currentY)<0.2);
+    const r = frame.getBoundingClientRect();
+    const baseY = currentY - 30 + (idle ? Math.sin((idleAngle+=0.03))*5 : 0);
+    ufo.style.left = (currentX - 60) + 'px'; ufo.style.top = baseY + 'px';
+
+    // Tilt del haz y del OVNI
+    const vxUfo = currentX - prevUfoX; let desiredBeam = clamp(vxUfo * 0.7, -16, 16); if(!beamOn) desiredBeam=0; beamAngleDeg += (desiredBeam - beamAngleDeg) * 0.28; let desiredUfo = clamp(vxUfo * 0.5, -12, 12); ufoAngleDeg += (desiredUfo - ufoAngleDeg) * 0.25; ufo.style.transform='rotate('+ufoAngleDeg+'deg)'; prevUfoX=currentX;
+
+    // Haz
+    if(beamOn){ const beamWidth=100; const coneTopX=currentX - beamWidth/2; const coneTopY=baseY + 60; const height=r.height/2; beam.style.left=coneTopX+'px'; beam.style.top=coneTopY+'px'; beam.style.height=height+'px'; beam.style.display='block'; } else { beam.style.display='none'; }
+    beam.style.transform='rotate('+beamAngleDeg+'deg)';
+    const beamRect = beamOn ? {left:currentX-50,right:currentX+50,top:baseY+60,bottom:baseY+60+(r.height/2)} : null;
+
+    // Captura exclusiva
+    if(beamOn && capturedIndex===-1 && beamRect){ let candidate=-1, bestDx=Infinity; boxes.forEach((el,i)=>{ const s=herdState[i]; const overlaps=(s.x+s.w)>beamRect.left && s.x<beamRect.right && (s.y+s.h)>beamRect.top && s.y<beamRect.bottom; if(overlaps){ const dx=Math.abs((s.x+s.w/2)-currentX); if(dx<bestDx){bestDx=dx; candidate=i;} } }); if(candidate!==-1){ capturedIndex=candidate; const s=herdState[capturedIndex]; s.captured=true; s.dropping=false; startAbductTone(); playMoo('grab'); } }
+    // Failsafe audio haz
+    if(!(beamOn && capturedIndex!==-1)) stopAbductTone();
+
+    // Física
+    const g=Math.max(.22, r.height*0.0012), air=.96, clearance=24;
+    boxes.forEach((el,i)=>{
+      const s=herdState[i]; const px=s.x, py=s.y;
+      if(i===capturedIndex && beamOn){ const ty=baseY+60 - s.h - 4 + clearance; const tx=currentX - s.w/2; s.x += (tx - s.x)*0.30; s.y += (ty - s.y)*0.02; s.vx = s.x - px; s.vy = s.y - py; }
+      else if(s.dropping){ s.vy += g; s.x += s.vx; s.y += s.vy; s.vx *= air; const minX=0, maxX=WORLD_W - s.w; if(s.x<minX){ s.x=minX; s.vx=-s.vx*0.4; } if(s.x>maxX){ s.x=maxX; s.vx=-s.vx*0.4; } const dropY=horizonY()-s.h; if(s.y>=dropY){ s.y=dropY; s.vx*=0.5; s.vy=0; s.dropping=false; playMoo('land'); } }
+      else { s.vx=0; s.vy=0; }
+      el.style.left=s.x+'px'; el.style.top=s.y+'px';
+    });
+
+    // Progreso / HUD
+    deliveredCount = herdState.reduce((a,s)=> a + (isDelivered(s)?1:0), 0);
+    updateHUD();
+    if(phase==='running'){ if(deliveredCount>=herdCount) winRound(); else if(timeLeft<=0) loseRound(); }
+
+    // Scroll por posición (zonas muertas en extremos)
+    {
+      const lx=pointerLocalX; let leftDead=VIEW_W*.25, rightDead=VIEW_W*.75, band=VIEW_W*.25;
+      if(camX===0){ leftDead=VIEW_W*.75; rightDead=VIEW_W*.75; band=VIEW_W*.25; }
+      if(camX===MAX_CAM){ leftDead=VIEW_W*.25; rightDead=VIEW_W*.25; band=VIEW_W*.25; }
+      let desired=0, SCROLL_MAX=32, SCROLL_RESP=.12, SCROLL_FRICTION=.90;
+      if(camX<MAX_CAM && lx>rightDead){ const t=Math.min(1,(lx-rightDead)/band); desired= t*SCROLL_MAX; }
+      else if(camX>0 && lx<leftDead){ const t=Math.min(1,(leftDead-lx)/band); desired=-t*SCROLL_MAX; }
+      camV += (desired - camV) * SCROLL_RESP; if(desired===0){ camV *= SCROLL_FRICTION; if(Math.abs(camV)<.02) camV=0; }
+    }
+    camX += camV; if(camX<0){camX=0;camV=0;} if(camX>MAX_CAM){camX=MAX_CAM;camV=0;}
+    world.style.transform=`translate3d(${-camX}px,0,0)`;
+
+    updateTheremin(dt);
+
+    requestAnimationFrame(animate);
+  }catch(e){ console.error(e); requestAnimationFrame(animate); }}
+
+  // ==== Inicio
+  populatePinar(); populatePradoLeft(); buildTruck(); positionTruck();
+  world.style.transform = `translate3d(${-MAX_CAM}px,0,0)`; // vista en Prado
+  requestAnimationFrame(animate);
+  window.addEventListener('resize', ()=>{ layoutBoxes(); populatePinar(); populatePradoLeft(); positionTruck(); });
+  </script>
+</body>
+</html>
