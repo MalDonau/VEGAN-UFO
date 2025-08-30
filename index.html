@@ -44,7 +44,31 @@
     .stars .star{position:absolute;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,.85) 40%, rgba(255,255,255,0) 70%);opacity:.7;filter:drop-shadow(0 0 2px rgba(255,255,255,.6));animation:twinkle var(--tw-dur,3s) ease-in-out infinite}
     @keyframes twinkle{0%,100%{opacity:.35}50%{opacity:1}}
 
-    .ufo{position:absolute;width:120px;height:60px;background:silver;border-radius:50%/50%;box-shadow:0 0 20px rgba(255,255,255,.5);pointer-events:none;z-index:5;transform-origin:50% 60%}
+    .ufo{position:absolute;width:120px;height:60px;pointer-events:none;z-index:5;transform-origin:50% 60%}
+    /* UFO estilizado tipo cartoon */
+    .ufo-dome{position:absolute;left:50%;top:-2px;transform:translateX(-50%);width:78px;height:38px;border-radius:50% 50% 45% 45%/60% 60% 40% 40%;
+      background:
+        radial-gradient(120px 60px at 60% 20%, rgba(255,255,255,.9) 0 10%, rgba(210,235,255,.85) 11% 30%, rgba(140,190,230,.7) 31% 90%, rgba(120,170,210,.55) 91% 100%);
+      border:3px solid rgba(220,240,255,.85);
+      box-shadow: inset 0 -6px 10px rgba(0,0,0,.18), 0 2px 0 rgba(0,0,0,.25);
+    }
+    .ufo-disc{position:absolute;left:50%;top:22px;transform:translateX(-50%);width:120px;height:36px;border-radius:50%/60%;
+      background:
+        radial-gradient(140px 60px at 50% 35%, #53677d 0%, #3b4e63 55%, #263243 100%),
+        repeating-radial-gradient(circle at 40% 60%, rgba(0,0,0,.22) 0 1px, transparent 1px 6px);
+      border:4px solid #111b29; box-shadow:inset 0 2px 5px rgba(255,255,255,.18), inset 0 -4px 6px rgba(0,0,0,.45), 0 6px 10px rgba(0,0,0,.35);
+    }
+    .ufo-base{position:absolute;left:50%;top:44px;transform:translateX(-50%);width:86px;height:14px;border-radius:50%/60%;
+      background:radial-gradient(80px 30px at 50% 30%, #1d2430 0%, #0f141e 100%);
+      box-shadow:inset 0 2px 3px rgba(255,255,255,.06), 0 6px 10px rgba(0,0,0,.45);
+    }
+    .ufo-light{position:absolute;top:30px;width:18px;height:18px;border-radius:50%;
+      background:radial-gradient(ellipse at 40% 35%, #ffe9a6 0%, #ffd36a 55%, #f4a93e 80%, #a0621f 100%);
+      border:3px solid #0e1420; box-shadow:0 2px 0 rgba(0,0,0,.35), 0 0 8px rgba(255,214,110,.45);
+    }
+    .ufo-light.l1{left:16px}
+    .ufo-light.l2{left:51px}
+    .ufo-light.l3{left:86px}
     .beam{position:absolute;width:100px;height:0;left:0;top:0;display:none;pointer-events:none;clip-path:polygon(35% 0%,65% 0%,100% 100%,0% 100%);background:linear-gradient(to bottom,rgba(var(--beam-color),.3) 0%, rgba(var(--beam-color),.6) 50%, rgba(var(--beam-color),0) 100%);filter:blur(.5px);transform-origin:50% 0%;z-index:4}
     .box{position:absolute;width:30px;height:20px;background:#fff;z-index:3}
 
@@ -116,7 +140,14 @@
       <div class="stars" id="stars"></div>
       <div class="ground"></div>
       <div class="beam" id="beam"></div>
-      <div class="ufo" id="ufo"></div>
+      <div class="ufo" id="ufo">
+        <div class="ufo-base"></div>
+        <div class="ufo-disc"></div>
+        <div class="ufo-dome"></div>
+        <div class="ufo-light l1"></div>
+        <div class="ufo-light l2"></div>
+        <div class="ufo-light l3"></div>
+      </div>
       <div id="herd"></div>
     </div>
 
